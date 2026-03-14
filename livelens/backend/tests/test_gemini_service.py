@@ -5,8 +5,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -207,3 +205,4 @@ def test_generate_summary_structured_live():
     result = service.generate_summary_structured(session)
 
     assert result == expected
+    mock_model.generate_content.assert_called_once()
