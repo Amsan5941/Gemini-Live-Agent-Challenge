@@ -34,13 +34,13 @@ Traditional chatbots are disconnected from what is visible on the screen. LiveLe
 ## Demo shortcuts
 
 - 60-second flow: click `Load 60-second magic demo` in session page.
-- 4-minute script: [demo-script.md](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/docs/demo-script.md)
-- Submission checklist: [submission-checklist.md](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/docs/submission-checklist.md)
-- Seeded state reference: [sample-seeded-session.json](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/docs/sample-seeded-session.json)
+- 4-minute script: [demo-script.md](docs/demo-script.md)
+- Submission checklist: [submission-checklist.md](docs/submission-checklist.md)
+- Seeded state reference: [sample-seeded-session.json](docs/sample-seeded-session.json)
 
 ## Architecture
 
-Diagram source: [architecture.mmd](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/docs/architecture.mmd)
+Diagram source: [architecture.mmd](docs/architecture.mmd)
 
 ```mermaid
 flowchart LR
@@ -68,10 +68,10 @@ LiveLens explicitly uses Google Cloud in the backend service layer:
 
 Key backend modules:
 
-- [routes.py](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/backend/app/api/routes.py)
-- [session_store.py](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/backend/app/services/session_store.py)
-- [storage_service.py](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/backend/app/services/storage_service.py)
-- [gemini_service.py](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/backend/app/services/gemini_service.py)
+- [routes.py](backend/app/api/routes.py)
+- [session_store.py](backend/app/services/session_store.py)
+- [storage_service.py](backend/app/services/storage_service.py)
+- [gemini_service.py](backend/app/services/gemini_service.py)
 
 ## Grounding and hallucination mitigation
 
@@ -178,9 +178,7 @@ Services:
 - `POST /api/sessions/{session_id}/screenshot`
 - `POST /api/sessions/{session_id}/analyze`
 - `POST /api/sessions/{session_id}/utterance`
-- `POST /api/sessions/{session_id}/respond`
 - `POST /api/sessions/{session_id}/actions/confirm`
-- `POST /api/sessions/{session_id}/actions/execute`
 - `POST /api/sessions/{session_id}/finalize`
 - `POST /api/sessions/{session_id}/seed-demo`
 
@@ -214,8 +212,8 @@ Set Cloud Run env vars:
 ## Repo submission-ready assets
 
 - Product overview and setup: this README
-- Architecture diagram: [architecture.mmd](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/docs/architecture.mmd)
-- Demo script: [demo-script.md](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/docs/demo-script.md)
-- Seeded test state: [sample-seeded-session.json](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/docs/sample-seeded-session.json)
-- Submission checklist: [submission-checklist.md](/C:/Users/Amsan/Downloads/Gemini%20Live%20Agent%20Challenge/livelens/docs/submission-checklist.md)
+- Architecture diagram: [architecture.mmd](docs/architecture.mmd)
+- Demo script: [demo-script.md](docs/demo-script.md)
+- Seeded test state: [sample-seeded-session.json](docs/sample-seeded-session.json)
+- Submission checklist: [submission-checklist.md](docs/submission-checklist.md)
 
