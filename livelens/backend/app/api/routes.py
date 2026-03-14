@@ -1,0 +1,127 @@
+from pathlib import Path
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
+
+from app.core.config import get_settings
+from app.models.session import (
+    ConfirmActionRequest,
+    SessionState,
+    StartSessionRequest,
+    UpdateModeRequest,
+    UtteranceRequest,
+)
+from app.services.action_executor import action_executor
+from app.services.orchestrator import orchestrator
+from app.services.screen_analyzer import screen_analyzer
+from app.services.session_store import get_session_store
+from app.services.storage_service import get_artifact_store
+
+
+router = APIRouter()
+
+
+@router.post("/sessions/start", response_model=SessionState)
+async def start_session(payload: StartSessionRequest) -> SessionState:
+    store = get_session_store()
+    session = orchestrator.build_initial_session(payload.mode)
+    return store.create(session)
+
+
+@router.get("/sessions/{session_id}", response_model=SessionState)
+async def get_session(session_id: str) -> SessionState:
+    store = get_session_store()
+    try:
+        return store.get(session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Session not found") from exc
+
+
+@router.post("/sessions/{session_id}/mode", response_model=SessionState)
+async def set_mode(session_id: str, payload: UpdateModeRequest) -> SessionState:
+    store = get_session_store()
+    session = store.get(session_id)
+    session.mode = payload.mode
+    session.phase = "idle"
+    return store.save(session)
+
+
+@router.post("/sessions/{session_id}/screenshot", response_model=SessionState)
+async def upload_screenshot(session_id: str, file: UploadFile = File(...)) -> SessionState:
+    settings = get_settings()
+    store = get_session_store()
+    artifact_store = get_artifact_store()
+    session = store.get(session_id)
+    file_url = await artifact_store.save_upload(session_id, file)
+    session.preview_image_url = file_url
+
+    local_path = settings.local_storage_path / session_id / Path(file_url).name
+    analysis = screen_analyzer.analyze(local_path)
+    updated = orchestrator.incorporate_screen_analysis(
+        session=session,
+        summary=str(analysis["summary"]),
+        checklist_seed=list(analysis["checklist"]),
+    )
+    return store.save(updated)
+
+
+@router.post("/sessions/{session_id}/analyze", response_model=SessionState)
+async def analyze_screen(session_id: str) -> SessionState:
+    settings = get_settings()
+    store = get_session_store()
+    session = store.get(session_id)
+    if not session.preview_image_url:
+        raise HTTPException(status_code=400, detail="No screenshot uploaded")
+
+    local_path = settings.local_storage_path / session_id / Path(session.preview_image_url).name
+    analysis = screen_analyzer.analyze(local_path)
+    updated = orchestrator.incorporate_screen_analysis(
+        session=session,
+        summary=str(analysis["summary"]),
+        checklist_seed=list(analysis["checklist"]),
+    )
+    return store.save(updated)
+
+
+@router.post("/sessions/{session_id}/utterance", response_model=SessionState)
+async def send_utterance(session_id: str, payload: UtteranceRequest) -> SessionState:
+    store = get_session_store()
+    session = store.get(session_id)
+    updated = orchestrator.handle_utterance(session, payload.text)
+    return store.save(updated)
+
+
+@router.post("/sessions/{session_id}/respond", response_model=SessionState)
+async def generate_response(session_id: str, payload: UtteranceRequest) -> SessionState:
+    return await send_utterance(session_id, payload)
+
+
+@router.post("/sessions/{session_id}/actions/confirm", response_model=SessionState)
+async def confirm_action(session_id: str, payload: ConfirmActionRequest) -> SessionState:
+    store = get_session_store()
+    session = store.get(session_id)
+    updated = orchestrator.confirm_action(session, payload.approved)
+    return store.save(updated)
+
+
+@router.post("/sessions/{session_id}/actions/execute", response_model=SessionState)
+async def execute_action(session_id: str) -> SessionState:
+    store = get_session_store()
+    session = store.get(session_id)
+    if session.suggested_action is None:
+        raise HTTPException(status_code=400, detail="No pending action")
+
+    result = action_executor.execute(
+        action_type=session.suggested_action.type,
+        target=session.suggested_action.target,
+        value=session.suggested_action.value,
+    )
+    updated = orchestrator.record_execution_result(session, result)
+    return store.save(updated)
+
+
+@router.post("/sessions/{session_id}/finalize", response_model=SessionState)
+async def finalize_session(session_id: str) -> SessionState:
+    store = get_session_store()
+    session = store.get(session_id)
+    updated = orchestrator.finalize(session)
+    return store.save(updated)

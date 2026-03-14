@@ -1,0 +1,15 @@
+flowchart LR
+    A["User mic + screenshot upload"] --> B["Next.js frontend"]
+    B --> C["FastAPI backend"]
+    C --> D["Gemini orchestration layer"]
+    D --> E["Firestore session memory"]
+    D --> F["Cloud Storage artifacts"]
+    D --> G["Playwright safe action executor"]
+    C --> B
+
+    B --> H["Voice UI + transcript"]
+    B --> I["Screen preview + grounded analysis"]
+    B --> J["Checklist + mode switcher"]
+    B --> K["Action confirmations + log"]
+    B --> L["Session summary"]
+
