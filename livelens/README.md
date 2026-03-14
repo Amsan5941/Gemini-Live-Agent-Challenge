@@ -96,6 +96,20 @@ LiveLens is designed to reduce hallucination risk in workflow guidance:
 
 ## Quick start
 
+### One command (recommended)
+
+From the repo root:
+
+```bash
+cd livelens
+npm run dev
+```
+
+This starts backend and frontend together:
+
+- frontend: `http://localhost:3000`
+- backend: `http://localhost:8000`
+
 ### Frontend
 
 ```bash
@@ -116,6 +130,27 @@ playwright install chromium
 cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
+
+## Dockerized startup
+
+### Start containers
+
+```bash
+cd livelens
+npm run docker:up
+```
+
+### Stop containers
+
+```bash
+cd livelens
+npm run docker:down
+```
+
+Services:
+
+- frontend: `http://localhost:3000`
+- backend: `http://localhost:8000`
 
 ## Environment variables
 
