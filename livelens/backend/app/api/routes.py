@@ -20,6 +20,13 @@ from app.services.storage_service import get_artifact_store
 router = APIRouter()
 
 
+def _get_session_or_404(store, session_id: str) -> SessionState:
+    try:
+        return store.get(session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Session not found") from exc
+
+
 @router.post("/sessions/start", response_model=SessionState)
 async def start_session(payload: StartSessionRequest) -> SessionState:
     store = get_session_store()
@@ -39,7 +46,7 @@ async def get_session(session_id: str) -> SessionState:
 @router.post("/sessions/{session_id}/mode", response_model=SessionState)
 async def set_mode(session_id: str, payload: UpdateModeRequest) -> SessionState:
     store = get_session_store()
-    session = store.get(session_id)
+    session = _get_session_or_404(store, session_id)
     session.mode = payload.mode
     session.phase = "idle"
     return store.save(session)
@@ -50,7 +57,7 @@ async def upload_screenshot(session_id: str, file: UploadFile = File(...)) -> Se
     settings = get_settings()
     store = get_session_store()
     artifact_store = get_artifact_store()
-    session = store.get(session_id)
+    session = _get_session_or_404(store, session_id)
     file_url = await artifact_store.save_upload(session_id, file)
     session.preview_image_url = file_url
 
@@ -64,7 +71,7 @@ async def upload_screenshot(session_id: str, file: UploadFile = File(...)) -> Se
 async def analyze_screen(session_id: str) -> SessionState:
     settings = get_settings()
     store = get_session_store()
-    session = store.get(session_id)
+    session = _get_session_or_404(store, session_id)
     if not session.preview_image_url:
         raise HTTPException(status_code=400, detail="No screenshot uploaded")
 
@@ -77,7 +84,7 @@ async def analyze_screen(session_id: str) -> SessionState:
 @router.post("/sessions/{session_id}/utterance", response_model=SessionState)
 async def send_utterance(session_id: str, payload: UtteranceRequest) -> SessionState:
     store = get_session_store()
-    session = store.get(session_id)
+    session = _get_session_or_404(store, session_id)
     updated = orchestrator.handle_utterance(session, payload.text)
     return store.save(updated)
 
@@ -85,7 +92,7 @@ async def send_utterance(session_id: str, payload: UtteranceRequest) -> SessionS
 @router.post("/sessions/{session_id}/actions/confirm", response_model=SessionState)
 async def confirm_action(session_id: str, payload: ConfirmActionRequest) -> SessionState:
     store = get_session_store()
-    session = store.get(session_id)
+    session = _get_session_or_404(store, session_id)
     updated = orchestrator.confirm_action(session, payload.approved)
     return store.save(updated)
 
@@ -93,7 +100,7 @@ async def confirm_action(session_id: str, payload: ConfirmActionRequest) -> Sess
 @router.post("/sessions/{session_id}/finalize", response_model=SessionState)
 async def finalize_session(session_id: str) -> SessionState:
     store = get_session_store()
-    session = store.get(session_id)
+    session = _get_session_or_404(store, session_id)
     updated = orchestrator.finalize(session)
     return store.save(updated)
 
@@ -101,6 +108,6 @@ async def finalize_session(session_id: str) -> SessionState:
 @router.post("/sessions/{session_id}/seed-demo", response_model=SessionState)
 async def seed_demo_state(session_id: str) -> SessionState:
     store = get_session_store()
-    session = store.get(session_id)
+    session = _get_session_or_404(store, session_id)
     updated = orchestrator.seed_demo_state(session)
     return store.save(updated)

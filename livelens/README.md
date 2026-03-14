@@ -161,7 +161,7 @@ Services:
 ### Backend
 
 - `GEMINI_API_KEY`
-- `GEMINI_MODEL` (default: `gemini-1.5-flash`)
+- `GEMINI_MODEL` (default: `gemini-2.5-flash`)
 - `GOOGLE_CLOUD_PROJECT`
 - `FIRESTORE_COLLECTION`
 - `STORAGE_BUCKET`

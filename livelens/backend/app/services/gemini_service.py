@@ -15,8 +15,8 @@ from app.models.session import SessionState
 
 _ANALYZE_FALLBACK: dict[str, object] = {
     "summary": (
-        "Visible screenshot received. Fallback analysis mode is active — "
-        "richer Gemini visual grounding needs a valid GEMINI_API_KEY."
+        "Visible screenshot received. Fallback analysis mode is active because Gemini is currently "
+        "unavailable. LiveLens can still provide grounded guidance from visible context."
     ),
     "checklist_items": [],
     "suggested_action": None,
@@ -31,10 +31,18 @@ _MISSING_FILE_FALLBACK: dict[str, object] = {
     "suggested_action": None,
 }
 
-_RESPOND_FALLBACK: dict[str, object] = {
+_RESPOND_FALLBACK_MISSING_KEY: dict[str, object] = {
     "response_text": (
         "I can help with the visible workflow. Based on the current screen, I will keep guidance concise, "
         "grounded, and step-by-step. Add a Gemini API key for richer multimodal reasoning."
+    ),
+    "suggested_action": None,
+}
+
+_RESPOND_FALLBACK_UNAVAILABLE: dict[str, object] = {
+    "response_text": (
+        "I can help with the visible workflow. Based on the current screen, I will keep guidance concise, "
+        "grounded, and step-by-step. Gemini is temporarily unavailable, so I am using safe fallback guidance."
     ),
     "suggested_action": None,
 }
@@ -44,12 +52,15 @@ class GeminiService:
     def __init__(self) -> None:
         settings = get_settings()
         self.model_name = settings.gemini_model
-        self.enabled = bool(settings.gemini_api_key)
+        self.has_api_key = bool(settings.gemini_api_key and settings.gemini_api_key.strip())
+        self.enabled = self.has_api_key
+        self.model = None
         if self.enabled:
-            genai.configure(api_key=settings.gemini_api_key)
-            self.model = genai.GenerativeModel(self.model_name)
-        else:
-            self.model = None
+            try:
+                genai.configure(api_key=settings.gemini_api_key)
+                self.model = genai.GenerativeModel(self.model_name)
+            except Exception:
+                self.enabled = False
 
     # ------------------------------------------------------------------
     # Legacy plain-text methods (kept for backward compatibility)
@@ -63,9 +74,14 @@ class GeminiService:
     def respond(self, prompt: str) -> str:
         """Plain-text response. Kept for compatibility."""
         if not self.enabled or self.model is None:
-            return str(_RESPOND_FALLBACK["response_text"])
+            return str(self._respond_fallback()["response_text"])
         response = self.model.generate_content(prompt)
         return response.text
+
+    def _respond_fallback(self) -> dict[str, object]:
+        if self.has_api_key:
+            return dict(_RESPOND_FALLBACK_UNAVAILABLE)
+        return dict(_RESPOND_FALLBACK_MISSING_KEY)
 
     # ------------------------------------------------------------------
     # Structured methods — return typed dicts with JSON envelopes
@@ -123,10 +139,10 @@ class GeminiService:
         Generate a grounded response to a user utterance.
         Returns:
           {"response_text": str, "suggested_action": dict | None}
-        Falls back to _RESPOND_FALLBACK on error.
+        Falls back to a safe response when Gemini is unavailable or fails.
         """
         if not self.enabled or self.model is None:
-            return dict(_RESPOND_FALLBACK)
+            return self._respond_fallback()
 
         prompt = (
             "You are LiveLens, a voice-first workflow copilot. Keep responses concise and spoken-friendly.\n"
@@ -152,7 +168,7 @@ class GeminiService:
                 "suggested_action": parsed.get("suggested_action"),
             }
         except Exception:
-            return dict(_RESPOND_FALLBACK)
+            return dict(_RESPOND_FALLBACK_UNAVAILABLE)
 
     def generate_summary_structured(self, session: SessionState) -> str:
         """

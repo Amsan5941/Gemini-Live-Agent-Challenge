@@ -161,6 +161,24 @@ def test_respond_structured_bad_json():
 
     assert "response_text" in result
     assert result["suggested_action"] is None
+    assert "temporarily unavailable" in result["response_text"]
+
+
+def test_respond_structured_fallback_with_key_but_unavailable_model():
+    """When a key exists but Gemini is unavailable, fallback should not ask to add a key."""
+    from app.services.gemini_service import GeminiService
+
+    service = GeminiService.__new__(GeminiService)
+    service.enabled = False
+    service.model = None
+    service.model_name = "gemini-1.5-flash"
+    service.has_api_key = True
+
+    result = service.respond_structured("help", "screen", "transcript")
+
+    assert "response_text" in result
+    assert "temporarily unavailable" in result["response_text"]
+    assert "Add a Gemini API key" not in result["response_text"]
 
 
 # ---------------------------------------------------------------------------

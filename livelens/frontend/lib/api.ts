@@ -2,6 +2,26 @@ import { SessionMode, SessionState } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
+function normalizeArtifactUrl(url?: string | null): string | null | undefined {
+  if (!url) {
+    return url;
+  }
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  if (url.startsWith("/")) {
+    return `${API_BASE_URL}${url}`;
+  }
+  return `${API_BASE_URL}/${url}`;
+}
+
+function normalizeSessionState(session: SessionState): SessionState {
+  return {
+    ...session,
+    preview_image_url: normalizeArtifactUrl(session.preview_image_url)
+  };
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const text = await response.text();
@@ -18,12 +38,12 @@ export async function startSession(mode: SessionMode): Promise<SessionState> {
     body: JSON.stringify({ mode })
   });
 
-  return parseJson<SessionState>(response);
+  return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
 export async function fetchSession(sessionId: string): Promise<SessionState> {
   const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`);
-  return parseJson<SessionState>(response);
+  return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
 export async function uploadScreenshot(sessionId: string, file: File): Promise<SessionState> {
@@ -35,7 +55,7 @@ export async function uploadScreenshot(sessionId: string, file: File): Promise<S
     body: formData
   });
 
-  return parseJson<SessionState>(response);
+  return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
 export async function sendUtterance(sessionId: string, text: string): Promise<SessionState> {
@@ -45,7 +65,7 @@ export async function sendUtterance(sessionId: string, text: string): Promise<Se
     body: JSON.stringify({ text })
   });
 
-  return parseJson<SessionState>(response);
+  return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
 export async function updateMode(sessionId: string, mode: SessionMode): Promise<SessionState> {
@@ -55,7 +75,7 @@ export async function updateMode(sessionId: string, mode: SessionMode): Promise<
     body: JSON.stringify({ mode })
   });
 
-  return parseJson<SessionState>(response);
+  return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
 export async function confirmAction(sessionId: string, approved: boolean): Promise<SessionState> {
@@ -65,7 +85,7 @@ export async function confirmAction(sessionId: string, approved: boolean): Promi
     body: JSON.stringify({ approved })
   });
 
-  return parseJson<SessionState>(response);
+  return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
 export async function finalizeSession(sessionId: string): Promise<SessionState> {
@@ -73,12 +93,12 @@ export async function finalizeSession(sessionId: string): Promise<SessionState> 
     method: "POST"
   });
 
-  return parseJson<SessionState>(response);
+  return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
 export async function seedDemoSession(sessionId: string): Promise<SessionState> {
   const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/seed-demo`, {
     method: "POST"
   });
-  return parseJson<SessionState>(response);
+  return normalizeSessionState(await parseJson<SessionState>(response));
 }

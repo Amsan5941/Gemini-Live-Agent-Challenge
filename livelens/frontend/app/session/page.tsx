@@ -64,6 +64,15 @@ export default function SessionPage() {
     void bootSession();
   }, [bootSession]);
 
+  const isSessionMissingError = useCallback((err: unknown) => {
+    return err instanceof Error && err.message.toLowerCase().includes("session not found");
+  }, []);
+
+  const recoverMissingSession = useCallback(async () => {
+    await bootSession();
+    setError("Session expired after a backend restart. A new session was started.");
+  }, [bootSession]);
+
   async function handleUpload(file: File) {
     if (!state.session_id) {
       return;
@@ -76,6 +85,10 @@ export default function SessionPage() {
       const next = await uploadScreenshot(state.session_id, file);
       setState(next);
     } catch (err) {
+      if (isSessionMissingError(err)) {
+        await recoverMissingSession();
+        return;
+      }
       setError((err as Error).message);
       setState((current) => ({ ...current, phase: "idle" }));
     } finally {
@@ -107,6 +120,10 @@ export default function SessionPage() {
       const next = await sendUtterance(state.session_id, text);
       setState(next);
     } catch (err) {
+      if (isSessionMissingError(err)) {
+        await recoverMissingSession();
+        return;
+      }
       setError((err as Error).message);
       setState((current) => ({ ...current, phase: "idle" }));
     }
@@ -121,6 +138,10 @@ export default function SessionPage() {
       const next = await updateMode(state.session_id, mode);
       setState(next);
     } catch (err) {
+      if (isSessionMissingError(err)) {
+        await recoverMissingSession();
+        return;
+      }
       setError((err as Error).message);
     }
   }
@@ -134,6 +155,10 @@ export default function SessionPage() {
       const next = await confirmAction(state.session_id, approved);
       setState(next);
     } catch (err) {
+      if (isSessionMissingError(err)) {
+        await recoverMissingSession();
+        return;
+      }
       setError((err as Error).message);
     }
   }
@@ -148,6 +173,10 @@ export default function SessionPage() {
       const next = await finalizeSession(state.session_id);
       setState(next);
     } catch (err) {
+      if (isSessionMissingError(err)) {
+        await recoverMissingSession();
+        return;
+      }
       setError((err as Error).message);
     } finally {
       setIsFinalizing(false);
@@ -165,6 +194,10 @@ export default function SessionPage() {
       const next = await seedDemoSession(state.session_id);
       setState(next);
     } catch (err) {
+      if (isSessionMissingError(err)) {
+        await recoverMissingSession();
+        return;
+      }
       setError((err as Error).message);
     } finally {
       setIsSeeding(false);

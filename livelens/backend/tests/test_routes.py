@@ -72,3 +72,21 @@ def test_upload_screenshot_passes_envelope_to_orchestrator():
     assert "envelope" in call_kwargs.kwargs or (
         len(call_kwargs.args) >= 2 and isinstance(call_kwargs.args[1], dict)
     ), "incorporate_screen_analysis must receive the envelope dict"
+
+
+def test_send_utterance_missing_session_returns_404():
+    response = client.post(
+        "/api/sessions/nonexistent/utterance",
+        json={"text": "hello"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Session not found"
+
+
+def test_set_mode_missing_session_returns_404():
+    response = client.post(
+        "/api/sessions/nonexistent/mode",
+        json={"mode": "assist"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Session not found"

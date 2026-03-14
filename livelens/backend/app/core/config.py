@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     port: int = 8000
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-2.5-flash"
     google_cloud_project: str = ""
     firestore_collection: str = "livelens_sessions"
     storage_bucket: str = ""
