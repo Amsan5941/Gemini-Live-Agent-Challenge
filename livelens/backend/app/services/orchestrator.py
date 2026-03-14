@@ -1,3 +1,4 @@
+# backend/app/services/orchestrator.py
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -13,7 +14,6 @@ from app.models.session import (
 )
 from app.services.action_executor import ActionExecutionResult, action_executor
 from app.services.gemini_service import gemini_service
-from app.services.summary_generator import summary_generator
 
 
 class Orchestrator:
@@ -47,22 +47,58 @@ class Orchestrator:
             ],
         )
 
-    def incorporate_screen_analysis(
-        self, session: SessionState, summary: str, checklist_seed: list[dict[str, object]]
-    ) -> SessionState:
-        session.screen_summary = summary
-        session.phase = "idle"
-        session.checklist[0].completed = True
+    def _complete_checklist_item(self, session: SessionState, label: str) -> None:
+        """Mark the first uncompleted item matching `label` as done. Silent no-op if not found."""
+        for item in session.checklist:
+            if item.label == label and not item.completed:
+                item.completed = True
+                break
 
-        for item in checklist_seed:
+    def incorporate_screen_analysis(
+        self, session: SessionState, envelope: dict[str, object]
+    ) -> SessionState:
+        """
+        Apply a structured Gemini screenshot analysis envelope to the session.
+        Envelope shape: {"summary": str, "checklist_items": list[dict], "suggested_action": dict | None}
+        """
+        session.screen_summary = str(envelope.get("summary", ""))
+        session.phase = "idle"
+
+        self._complete_checklist_item(session, "Capture the current step")
+
+        for item in envelope.get("checklist_items", []):  # type: ignore[union-attr]
             session.checklist.append(
                 ChecklistItem(
                     id=uuid4().hex,
                     label=str(item["label"]),
-                    detail=str(item["detail"]),
-                    completed=bool(item["completed"]),
+                    detail=str(item.get("detail", "")),
+                    completed=bool(item.get("completed", False)),
                 )
             )
+
+        raw_action = envelope.get("suggested_action")
+        if raw_action and isinstance(raw_action, dict):
+            try:
+                action = SuggestedAction(
+                    action_id=uuid4().hex,
+                    type=raw_action["type"],
+                    target=raw_action["target"],
+                    reason=raw_action.get("reason", ""),
+                    value=raw_action.get("value"),
+                    requires_confirmation=True,
+                )
+                session.suggested_action = action
+                session.phase = "awaiting_confirmation"
+                session.action_log.append(
+                    ActionLogItem(
+                        id=uuid4().hex,
+                        timestamp=datetime.now(timezone.utc),
+                        status="suggested",
+                        description=f"Suggested {action.type} on {action.target}",
+                    )
+                )
+            except Exception:
+                pass  # Invalid action shape from Gemini — skip silently
 
         session.transcript.append(
             AgentMessage(
@@ -76,15 +112,18 @@ class Orchestrator:
 
     def handle_utterance(self, session: SessionState, text: str) -> SessionState:
         session.phase = "thinking"
-        lowered = text.lower()
-        current_context = session.screen_summary or "No screenshot analysis yet."
-        prompt = (
-            "You are LiveLens, a voice-first workflow copilot. Keep responses concise, spoken-friendly, and grounded. "
-            f"Current screen summary: {current_context}\n"
-            f"User request: {text}\n"
-            f"Session mode: {session.mode}"
+
+        screen_summary = session.screen_summary or "No screenshot analysis yet."
+        transcript_excerpt = "\n".join(
+            f"{m.speaker}: {m.text}" for m in session.transcript[-6:]
         )
-        response_text = gemini_service.respond(prompt)
+
+        result = gemini_service.respond_structured(
+            utterance_text=text,
+            screen_summary=screen_summary,
+            transcript_excerpt=transcript_excerpt,
+        )
+
         session.transcript.append(
             AgentMessage(
                 id=uuid4().hex,
@@ -97,34 +136,36 @@ class Orchestrator:
             AgentMessage(
                 id=uuid4().hex,
                 speaker="agent",
-                text=response_text,
+                text=result["response_text"],  # type: ignore[index]
                 created_at=datetime.now(timezone.utc),
             )
         )
 
-        if "application" in lowered or "finish" in lowered:
-            session.checklist[1].completed = True
+        self._complete_checklist_item(session, "Clarify the immediate goal")
 
-        if session.mode in {"assist", "act"} and any(
-            keyword in lowered for keyword in ["click", "next", "continue", "help me finish"]
-        ):
-            action = SuggestedAction(
-                action_id=uuid4().hex,
-                type="click",
-                target="Visible primary call-to-action button",
-                reason="The user is asking to move forward, and a next-step click is the safest likely action.",
-                requires_confirmation=True,
-            )
-            session.suggested_action = action
-            session.phase = "awaiting_confirmation"
-            session.action_log.append(
-                ActionLogItem(
-                    id=uuid4().hex,
-                    timestamp=datetime.now(timezone.utc),
-                    status="suggested",
-                    description=f"Suggested {action.type} on {action.target}",
+        raw_action = result.get("suggested_action")
+        if raw_action and isinstance(raw_action, dict) and session.mode in {"assist", "act"}:
+            try:
+                action = SuggestedAction(
+                    action_id=uuid4().hex,
+                    type=raw_action["type"],
+                    target=raw_action["target"],
+                    reason=raw_action.get("reason", ""),
+                    value=raw_action.get("value"),
+                    requires_confirmation=True,
                 )
-            )
+                session.suggested_action = action
+                session.phase = "awaiting_confirmation"
+                session.action_log.append(
+                    ActionLogItem(
+                        id=uuid4().hex,
+                        timestamp=datetime.now(timezone.utc),
+                        status="suggested",
+                        description=f"Suggested {action.type} on {action.target}",
+                    )
+                )
+            except Exception:
+                session.phase = "speaking"
         else:
             session.phase = "speaking"
 
@@ -177,7 +218,9 @@ class Orchestrator:
             AgentMessage(
                 id=uuid4().hex,
                 speaker="agent",
-                text="The safe action is complete. Let's verify the next visible step.",
+                text="The safe action is complete. Let's verify the next visible step."
+                if result.ok
+                else "I could not safely complete that action, so I stopped and kept the page unchanged.",
                 created_at=datetime.now(timezone.utc),
             )
         )
@@ -186,33 +229,7 @@ class Orchestrator:
         return session
 
     def finalize(self, session: SessionState) -> SessionState:
-        session.latest_summary = summary_generator.generate(session)
-        session.phase = "idle"
-        return session
-
-    def record_execution_result(self, session: SessionState, result: ActionExecutionResult) -> SessionState:
-        if session.suggested_action is None:
-            return session
-
-        session.action_log.append(
-            ActionLogItem(
-                id=uuid4().hex,
-                timestamp=datetime.now(timezone.utc),
-                status="executed" if result.ok else "failed",
-                description=result.message,
-            )
-        )
-        session.transcript.append(
-            AgentMessage(
-                id=uuid4().hex,
-                speaker="agent",
-                text="The safe action is complete. Let's verify the next visible step."
-                if result.ok
-                else "I could not safely complete that action, so I stopped and kept the page unchanged.",
-                created_at=datetime.now(timezone.utc),
-            )
-        )
-        session.suggested_action = None
+        session.latest_summary = gemini_service.generate_summary_structured(session)
         session.phase = "idle"
         return session
 
