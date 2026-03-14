@@ -6,10 +6,11 @@ import { ChangeEvent, useRef, useState } from "react";
 interface ScreenPanelProps {
   previewImageUrl?: string | null;
   summary?: string;
+  loading?: boolean;
   onUpload: (file: File) => Promise<void>;
 }
 
-export function ScreenPanel({ previewImageUrl, summary, onUpload }: ScreenPanelProps) {
+export function ScreenPanel({ previewImageUrl, summary, loading = false, onUpload }: ScreenPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -35,7 +36,8 @@ export function ScreenPanel({ previewImageUrl, summary, onUpload }: ScreenPanelP
           <p className="text-sm text-mist">Screenshot-first for reliable visual grounding. Live streaming can slot in later.</p>
         </div>
         <button
-          className="rounded-full border border-white/10 px-4 py-2 text-sm text-white transition hover:border-glow hover:text-glow"
+          className="rounded-full border border-white/10 px-4 py-2 text-sm text-white transition hover:border-glow hover:text-glow disabled:opacity-60"
+          disabled={loading || uploading}
           onClick={() => fileInputRef.current?.click()}
           type="button"
         >
@@ -50,9 +52,19 @@ export function ScreenPanel({ previewImageUrl, summary, onUpload }: ScreenPanelP
         type="file"
       />
       <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/40">
-        {previewImageUrl ? (
+        {loading ? (
+          <div className="flex aspect-[16/10] items-center justify-center p-8 text-center text-sm text-mist">
+            Analyzing visual context...
+          </div>
+        ) : previewImageUrl ? (
           <div className="relative aspect-[16/10] w-full">
-            <Image alt="Uploaded screen preview" fill sizes="(min-width: 1024px) 50vw, 100vw" src={previewImageUrl} className="object-cover" />
+            <Image
+              alt="Uploaded screen preview"
+              fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              src={previewImageUrl}
+              className="object-cover"
+            />
           </div>
         ) : (
           <div className="flex aspect-[16/10] items-center justify-center p-8 text-center text-sm text-mist">
@@ -61,7 +73,7 @@ export function ScreenPanel({ previewImageUrl, summary, onUpload }: ScreenPanelP
         )}
       </div>
       <div className="mt-4 rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-sm text-mist">
-        {summary ?? "No screen analysis yet."}
+        {loading ? "Reading visible UI, required fields, and blockers..." : summary ?? "No screen analysis yet."}
       </div>
     </section>
   );

@@ -10,8 +10,9 @@
 body {
   @apply bg-ink text-white antialiased;
   background-image:
-    radial-gradient(circle at top left, rgba(40, 100, 255, 0.22), transparent 28%),
-    radial-gradient(circle at top right, rgba(143, 255, 209, 0.16), transparent 25%),
+    radial-gradient(circle at 15% 10%, rgba(38, 92, 235, 0.25), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(143, 255, 209, 0.16), transparent 25%),
+    radial-gradient(circle at 50% 100%, rgba(255, 141, 122, 0.08), transparent 30%),
     linear-gradient(180deg, #09111f 0%, #040914 100%);
   min-height: 100vh;
 }
@@ -24,3 +25,20 @@ body {
   @apply border border-white/10 bg-white/5 backdrop-blur-xl;
 }
 
+.glow-ring {
+  position: relative;
+}
+
+.glow-ring::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(143, 255, 209, 0.25), rgba(86, 121, 255, 0.16), rgba(255, 141, 122, 0.18));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  padding: 1px;
+}

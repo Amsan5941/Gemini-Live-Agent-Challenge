@@ -1,6 +1,27 @@
 import { ActionLogItem } from "@/lib/types";
 
-export function ActionLogPanel({ items }: { items: ActionLogItem[] }) {
+interface ActionLogPanelProps {
+  items: ActionLogItem[];
+  loading?: boolean;
+}
+
+export function ActionLogPanel({ items, loading = false }: ActionLogPanelProps) {
+  if (loading) {
+    return (
+      <section className="glass-panel rounded-3xl p-5">
+        <div className="mb-4 h-6 w-28 animate-pulse rounded bg-white/10" />
+        <div className="space-y-3">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3" key={index}>
+              <div className="h-4 w-48 animate-pulse rounded bg-white/10" />
+              <div className="mt-2 h-3 w-24 animate-pulse rounded bg-white/5" />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="glass-panel rounded-3xl p-5">
       <h3 className="mb-4 text-lg font-semibold">Action Log</h3>
@@ -24,4 +45,3 @@ export function ActionLogPanel({ items }: { items: ActionLogItem[] }) {
     </section>
   );
 }
-

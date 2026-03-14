@@ -125,3 +125,11 @@ async def finalize_session(session_id: str) -> SessionState:
     session = store.get(session_id)
     updated = orchestrator.finalize(session)
     return store.save(updated)
+
+
+@router.post("/sessions/{session_id}/seed-demo", response_model=SessionState)
+async def seed_demo_state(session_id: str) -> SessionState:
+    store = get_session_store()
+    session = store.get(session_id)
+    updated = orchestrator.seed_demo_state(session)
+    return store.save(updated)

@@ -1,15 +1,16 @@
 flowchart LR
-    A["User mic + screenshot upload"] --> B["Next.js frontend"]
+    A["User microphone + screenshot upload"] --> B["Next.js frontend (voice-first UI)"]
     B --> C["FastAPI backend"]
-    C --> D["Gemini orchestration layer"]
-    D --> E["Firestore session memory"]
-    D --> F["Cloud Storage artifacts"]
-    D --> G["Playwright safe action executor"]
-    C --> B
+    C --> D["LiveLens orchestrator"]
 
-    B --> H["Voice UI + transcript"]
-    B --> I["Screen preview + grounded analysis"]
-    B --> J["Checklist + mode switcher"]
-    B --> K["Action confirmations + log"]
-    B --> L["Session summary"]
+    D --> E["Gemini multimodal analysis and response"]
+    D --> F["Firestore session memory"]
+    D --> G["Cloud Storage screenshots and artifacts"]
+    D --> H["Playwright safe action executor"]
+
+    D --> I["Checklist updater"]
+    D --> J["Action confirmation gate"]
+    D --> K["Summary generator"]
+
+    C --> B
 
