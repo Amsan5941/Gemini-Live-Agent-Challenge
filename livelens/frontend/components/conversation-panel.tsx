@@ -1,165 +1,134 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { Mic, Send, Square, Volume2 } from "lucide-react";
-import { AgentMessage, AgentPhase, SuggestedAction } from "@/lib/types";
-import { StatusPill } from "@/components/status-pill";
+import { useEffect, useRef } from "react";
+import { CheckCircle2, Circle } from "lucide-react";
+import { AgentMessage, AgentPhase, ChecklistItem, SuggestedAction } from "@/lib/types";
 
 interface ConversationPanelProps {
   messages: AgentMessage[];
+  checklist: ChecklistItem[];
   phase: AgentPhase;
   suggestedAction?: SuggestedAction | null;
   loading?: boolean;
-  onSend: (text: string) => Promise<void>;
+  confirming?: boolean;
   onConfirmAction: (approved: boolean) => Promise<void>;
 }
 
 export function ConversationPanel({
   messages,
+  checklist,
   phase,
   suggestedAction,
   loading = false,
-  onSend,
-  onConfirmAction
+  confirming = false,
+  onConfirmAction,
 }: ConversationPanelProps) {
-  const [value, setValue] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!value.trim() || submitting) {
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await onSend(value.trim());
-      setValue("");
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
 
   return (
-    <section className="glass-panel rounded-[2rem] p-5">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold">Live Conversation</h3>
-          <p className="text-sm text-mist">Voice-first UX with text fallback for the MVP demo path.</p>
+    <div className="flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 pr-1">
+      {loading ? (
+        <div className="space-y-3 pt-2">
+          <div className="h-14 w-2/3 animate-pulse rounded-2xl bg-white/10" />
+          <div className="ml-auto h-12 w-1/2 animate-pulse rounded-2xl bg-white/10" />
         </div>
-        <StatusPill phase={phase} />
-      </div>
-
-      <div className="mb-4 h-[320px] space-y-3 overflow-y-auto rounded-3xl border border-white/8 bg-slate-950/30 p-4">
-        {loading ? (
-          <div className="space-y-3">
-            <div className="h-14 w-2/3 animate-pulse rounded-2xl bg-white/10" />
-            <div className="ml-auto h-12 w-1/2 animate-pulse rounded-2xl bg-white/10" />
-            <div className="h-16 w-3/4 animate-pulse rounded-2xl bg-white/10" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-center text-sm text-mist">
-            LiveLens is ready. Ask your first question or use voice input.
-          </div>
-        ) : messages.map((message) => (
-          <div
-            key={message.id}
-            className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-              message.speaker === "agent"
-                ? "bg-sky-500/10 text-sky-50"
-                : "ml-auto bg-white/10 text-white"
-            }`}
-          >
-            <div className="mb-1 text-[11px] uppercase tracking-[0.2em] text-mist">{message.speaker}</div>
-            <div>{message.text}</div>
-          </div>
-        ))}
-      </div>
-
-      {suggestedAction ? (
-        <div className="mb-4 rounded-3xl border border-amber-300/40 bg-gradient-to-r from-amber-300/20 to-coral/10 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="text-sm font-semibold text-amber-100">Confirm safe action</div>
-            <div className="rounded-full border border-amber-200/30 bg-amber-100/10 px-3 py-1 text-xs text-amber-100">
-              Act Mode
-            </div>
-          </div>
-          <div className="mt-2 text-sm text-amber-50">
-            {suggestedAction.reason}
-          </div>
-          <div className="mt-2 rounded-2xl border border-amber-200/20 bg-black/20 p-3 text-sm text-amber-50">
-            <div>
-              <span className="text-amber-200/80">Action:</span> {suggestedAction.type}
-            </div>
-            <div>
-              <span className="text-amber-200/80">Target:</span> {suggestedAction.target}
-            </div>
-            {suggestedAction.value ? (
-              <div>
-                <span className="text-amber-200/80">Value:</span> {suggestedAction.value}
+      ) : messages.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center text-center text-sm text-mist py-12">
+          Upload a screenshot or start typing to begin.
+        </div>
+      ) : (
+        <>
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                message.speaker === "agent"
+                  ? "bg-sky-500/10 text-sky-50 border border-sky-500/10"
+                  : "ml-auto bg-white/10 text-white"
+              }`}
+            >
+              <div className="mb-1 text-[11px] uppercase tracking-[0.2em] text-mist">
+                {message.speaker === "agent" ? "LiveLens" : "You"}
               </div>
-            ) : null}
-          </div>
-          <div className="mt-3 text-xs text-amber-100/80">
-            LiveLens only executes low-risk actions after approval. If the target is ambiguous, execution is cancelled.
-          </div>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <button
-              className="rounded-full bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60"
-              disabled={confirming}
-              onClick={async () => {
-                setConfirming(true);
-                try {
-                  await onConfirmAction(true);
-                } finally {
-                  setConfirming(false);
-                }
-              }}
-              type="button"
-            >
-              {confirming ? "Confirming..." : "Approve and execute"}
-            </button>
-            <button
-              className="rounded-full border border-white/15 px-4 py-2 text-sm text-white disabled:opacity-60"
-              disabled={confirming}
-              onClick={async () => {
-                setConfirming(true);
-                try {
-                  await onConfirmAction(false);
-                } finally {
-                  setConfirming(false);
-                }
-              }}
-              type="button"
-            >
-              Deny action
-            </button>
-          </div>
-        </div>
-      ) : null}
+              <div className="leading-relaxed">{message.text}</div>
+            </div>
+          ))}
 
-      <form className="flex flex-col gap-3 md:flex-row" onSubmit={handleSubmit}>
-        <div className="flex flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3">
-          <Mic className="h-4 w-4 text-glow" />
-          <input
-          className="w-full bg-transparent text-sm text-white outline-none placeholder:text-mist"
-          disabled={loading}
-          onChange={(event) => setValue(event.target.value)}
-          placeholder="Ask LiveLens what this field means, what to do next, or whether to confirm a step."
-          value={value}
-        />
-          {phase === "speaking" ? <Volume2 className="h-4 w-4 text-sky-300" /> : <Square className="h-4 w-4 text-mist" />}
+          {checklist.length > 0 && (
+            <div className="my-2 rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-mist">Progress</div>
+              <div className="space-y-2">
+                {checklist.map((item) => (
+                  <div key={item.id} className="flex items-start gap-2 text-sm">
+                    {item.completed ? (
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-glow" />
+                    ) : (
+                      <Circle className="mt-0.5 h-4 w-4 flex-shrink-0 text-mist" />
+                    )}
+                    <span className={item.completed ? "text-white/70 line-through" : "text-white"}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {suggestedAction && (
+            <div className="rounded-2xl border border-amber-300/40 bg-gradient-to-r from-amber-300/15 to-coral/10 p-4">
+              <div className="mb-1 text-xs uppercase tracking-[0.2em] text-amber-200/80">
+                Action proposed
+              </div>
+              <div className="text-sm font-medium text-amber-50">{suggestedAction.reason}</div>
+              <div className="mt-2 rounded-xl border border-amber-200/15 bg-black/20 p-3 text-sm text-amber-50/90 space-y-1">
+                <div><span className="text-amber-200/60">Action:</span> {suggestedAction.type}</div>
+                <div><span className="text-amber-200/60">Target:</span> {suggestedAction.target}</div>
+                {suggestedAction.value && (
+                  <div><span className="text-amber-200/60">Value:</span> {suggestedAction.value}</div>
+                )}
+              </div>
+              <div className="mt-3 text-xs text-amber-100/60">
+                LiveLens only executes after your explicit approval.
+              </div>
+              <div className="mt-3 flex gap-3">
+                <button
+                  className="rounded-full bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60 hover:bg-amber-200 transition"
+                  disabled={confirming}
+                  onClick={() => onConfirmAction(true)}
+                  type="button"
+                >
+                  {confirming ? "Executing…" : "Approve & execute"}
+                </button>
+                <button
+                  className="rounded-full border border-white/15 px-4 py-2 text-sm text-white disabled:opacity-60 hover:border-white/30 transition"
+                  disabled={confirming}
+                  onClick={() => onConfirmAction(false)}
+                  type="button"
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {phase === "thinking" && (
+        <div className="flex items-center gap-2 text-sm text-mist py-1">
+          <span className="inline-flex gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-glow animate-bounce [animation-delay:0ms]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-glow animate-bounce [animation-delay:150ms]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-glow animate-bounce [animation-delay:300ms]" />
+          </span>
+          LiveLens is thinking…
         </div>
-        <button
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-glow px-5 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
-          disabled={submitting || loading}
-          type="submit"
-        >
-          <Send className="h-4 w-4" />
-          Send
-        </button>
-      </form>
-    </section>
+      )}
+
+      <div ref={bottomRef} />
+    </div>
   );
 }
