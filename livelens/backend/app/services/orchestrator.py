@@ -17,17 +17,17 @@ from app.services.gemini_service import gemini_service
 
 
 class Orchestrator:
-    def build_initial_session(self, mode: SessionMode) -> SessionState:
+    def build_initial_session(self) -> SessionState:
         session_id = uuid4().hex
         return SessionState(
             session_id=session_id,
-            mode=mode,
+            mode="assist",
             phase="idle",
             transcript=[
                 AgentMessage(
                     id=uuid4().hex,
                     speaker="agent",
-                    text="I'm LiveLens. Upload the current screen and ask what you want to finish.",
+                    text="I'm LiveLens. Upload a screenshot of where you're stuck, or just describe what you're trying to do.",
                     created_at=datetime.now(timezone.utc),
                 )
             ],
@@ -35,13 +35,13 @@ class Orchestrator:
                 ChecklistItem(
                     id=uuid4().hex,
                     label="Capture the current step",
-                    detail="Upload a screenshot so LiveLens can ground the guidance in visible evidence.",
+                    detail="Upload a screenshot so I can see exactly what you're looking at.",
                     completed=False,
                 ),
                 ChecklistItem(
                     id=uuid4().hex,
-                    label="Clarify the immediate goal",
-                    detail="Say what you want to finish, such as submitting an application or fixing an error.",
+                    label="Clarify your goal",
+                    detail="Tell me what you're trying to finish — submitting a form, fixing an error, or anything else.",
                     completed=False,
                 ),
             ],
@@ -231,80 +231,6 @@ class Orchestrator:
     def finalize(self, session: SessionState) -> SessionState:
         session.latest_summary = gemini_service.generate_summary_structured(session)
         session.phase = "idle"
-        return session
-
-    def seed_demo_state(self, session: SessionState) -> SessionState:
-        session.phase = "awaiting_confirmation"
-        session.mode = "act"
-        session.screen_summary = (
-            "Visible screen analysis: multi-step application form with Personal Info completed, "
-            "Work Authorization highlighted as required, and Continue visible at the bottom."
-        )
-        session.preview_image_url = (
-            "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&q=80"
-        )
-        session.checklist = [
-            ChecklistItem(
-                id=uuid4().hex,
-                label="Capture the current step",
-                completed=True,
-                detail="Screenshot uploaded and analyzed.",
-            ),
-            ChecklistItem(
-                id=uuid4().hex,
-                label="Clarify the immediate goal",
-                completed=True,
-                detail="User asked to finish the application quickly and safely.",
-            ),
-            ChecklistItem(
-                id=uuid4().hex,
-                label="Confirm work authorization answer",
-                completed=False,
-                detail="Required field is visible and pending a final user check.",
-            ),
-            ChecklistItem(
-                id=uuid4().hex,
-                label="Continue to the next section",
-                completed=False,
-                detail="Safe click is prepared and waiting for explicit confirmation.",
-            ),
-        ]
-        session.transcript = [
-            AgentMessage(
-                id=uuid4().hex,
-                speaker="agent",
-                text="I can see the application form. Most details look complete and one required question is pending.",
-                created_at=datetime.now(timezone.utc),
-            ),
-            AgentMessage(
-                id=uuid4().hex,
-                speaker="user",
-                text="Help me finish this in under a minute.",
-                created_at=datetime.now(timezone.utc),
-            ),
-            AgentMessage(
-                id=uuid4().hex,
-                speaker="agent",
-                text="Great. Confirm that required answer, then I can safely click Continue after your approval.",
-                created_at=datetime.now(timezone.utc),
-            ),
-        ]
-        session.suggested_action = SuggestedAction(
-            action_id=uuid4().hex,
-            type="click",
-            target="Continue button",
-            reason="The required question appears addressed, so Continue is the next low-risk action.",
-            requires_confirmation=True,
-        )
-        session.action_log = [
-            ActionLogItem(
-                id=uuid4().hex,
-                timestamp=datetime.now(timezone.utc),
-                status="suggested",
-                description="Suggested click on Continue button",
-            )
-        ]
-        session.latest_summary = None
         return session
 
 
