@@ -67,10 +67,38 @@ export function VoiceControls({
   useEffect(() => {
     if (!latestAgentMessage || typeof window === "undefined") return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(latestAgentMessage);
-    utterance.rate = 1.03;
-    utterance.pitch = 1.0;
-    window.speechSynthesis.speak(utterance);
+
+    function speak() {
+      const utterance = new SpeechSynthesisUtterance(latestAgentMessage);
+      utterance.rate = 0.97;
+      utterance.pitch = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = [
+        "Google US English",
+        "Google UK English Female",
+        "Samantha",
+        "Karen",
+        "Moira",
+      ];
+      const picked =
+        preferred.reduce<SpeechSynthesisVoice | null>((found, name) => {
+          return found ?? (voices.find((v) => v.name === name) ?? null);
+        }, null) ??
+        voices.find((v) => v.lang.startsWith("en") && v.localService) ??
+        voices.find((v) => v.lang.startsWith("en")) ??
+        null;
+
+      if (picked) utterance.voice = picked;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Voices load asynchronously on first call in some browsers
+    if (window.speechSynthesis.getVoices().length > 0) {
+      speak();
+    } else {
+      window.speechSynthesis.addEventListener("voiceschanged", speak, { once: true });
+    }
   }, [latestAgentMessage]);
 
   function toggle() {
