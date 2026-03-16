@@ -8,7 +8,6 @@ from app.models.session import (
     ActionLogItem,
     AgentMessage,
     ChecklistItem,
-    SessionMode,
     SessionState,
     SuggestedAction,
 )
@@ -141,7 +140,7 @@ class Orchestrator:
             )
         )
 
-        self._complete_checklist_item(session, "Clarify the immediate goal")
+        self._complete_checklist_item(session, "Clarify your goal")
 
         raw_action = result.get("suggested_action")
         if raw_action and isinstance(raw_action, dict) and session.mode in {"assist", "act"}:

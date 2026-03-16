@@ -16,7 +16,7 @@ def _base_session() -> SessionState:
         session_id="test-session",
         checklist=[
             ChecklistItem(id=uuid4().hex, label="Capture the current step", completed=False),
-            ChecklistItem(id=uuid4().hex, label="Clarify the immediate goal", completed=False),
+            ChecklistItem(id=uuid4().hex, label="Clarify your goal", completed=False),
         ],
     )
 
@@ -182,7 +182,7 @@ def test_handle_utterance_marks_clarify_goal_complete():
         mock_gemini.respond_structured.return_value = respond_result
         updated = orch.handle_utterance(session, "help me finish")
 
-    clarify = next(i for i in updated.checklist if i.label == "Clarify the immediate goal")
+    clarify = next(i for i in updated.checklist if i.label == "Clarify your goal")
     assert clarify.completed is True
 
 
