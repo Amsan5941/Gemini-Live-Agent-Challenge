@@ -1,80 +1,99 @@
 "use client";
 
-import Image from "next/image";
-import { ChangeEvent, useRef, useState } from "react";
+import { DragEvent, useRef, useState } from "react";
+import { ImagePlus, Loader2 } from "lucide-react";
 
 interface ScreenPanelProps {
   previewImageUrl?: string | null;
-  summary?: string;
+  summary?: string | null;
   loading?: boolean;
   onUpload: (file: File) => Promise<void>;
+  compact?: boolean;
 }
 
-export function ScreenPanel({ previewImageUrl, summary, loading = false, onUpload }: ScreenPanelProps) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
+export function ScreenPanel({
+  previewImageUrl,
+  summary,
+  loading = false,
+  onUpload,
+  compact = false,
+}: ScreenPanelProps) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+    setDragging(true);
+  }
 
-    setUploading(true);
-    try {
+  function handleDragLeave() {
+    setDragging(false);
+  }
+
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file?.type.startsWith("image/")) {
       await onUpload(file);
-    } finally {
-      setUploading(false);
     }
   }
 
-  return (
-    <section className="glass-panel rounded-[2rem] p-5">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold">Screen Context</h3>
-          <p className="text-sm text-mist">Screenshot-first for reliable visual grounding. Live streaming can slot in later.</p>
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) await onUpload(file);
+  }
+
+  if (previewImageUrl && !loading) {
+    return (
+      <div className="space-y-3">
+        <div className="overflow-hidden rounded-2xl border border-white/10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img alt="Uploaded screenshot" className="w-full object-cover" src={previewImageUrl} />
         </div>
-        <button
-          className="rounded-full border border-white/10 px-4 py-2 text-sm text-white transition hover:border-glow hover:text-glow disabled:opacity-60"
-          disabled={loading || uploading}
-          onClick={() => fileInputRef.current?.click()}
-          type="button"
-        >
-          {uploading ? "Uploading..." : "Upload screenshot"}
-        </button>
-      </div>
-      <input
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={handleChange}
-        ref={fileInputRef}
-        type="file"
-      />
-      <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/40">
-        {loading ? (
-          <div className="flex aspect-[16/10] items-center justify-center p-8 text-center text-sm text-mist">
-            Analyzing visual context...
-          </div>
-        ) : previewImageUrl ? (
-          <div className="relative aspect-[16/10] w-full">
-            <Image
-              alt="Uploaded screen preview"
-              fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              src={previewImageUrl}
-              className="object-cover"
-            />
-          </div>
-        ) : (
-          <div className="flex aspect-[16/10] items-center justify-center p-8 text-center text-sm text-mist">
-            Upload a screenshot of the current workflow. LiveLens will describe only visible evidence and turn it into the next best step.
+        {summary && (
+          <div className="rounded-xl bg-white/[0.03] border border-white/8 px-4 py-3 text-xs leading-5 text-mist">
+            {summary}
           </div>
         )}
+        <button
+          className="text-xs text-mist/60 underline underline-offset-2 hover:text-mist transition"
+          onClick={() => inputRef.current?.click()}
+          type="button"
+        >
+          Upload a different screenshot
+        </button>
+        <input accept="image/*" className="hidden" onChange={handleFileChange} ref={inputRef} type="file" />
       </div>
-      <div className="mt-4 rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-sm text-mist">
-        {loading ? "Reading visible UI, required fields, and blockers..." : summary ?? "No screen analysis yet."}
-      </div>
-    </section>
+    );
+  }
+
+  return (
+    <div
+      className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed transition cursor-pointer
+        ${dragging ? "border-glow bg-glow/10" : "border-white/15 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]"}
+        ${compact ? "py-8 px-6" : "py-16 px-8"}
+      `}
+      onClick={() => inputRef.current?.click()}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      <input accept="image/*" className="hidden" onChange={handleFileChange} ref={inputRef} type="file" />
+      {loading ? (
+        <>
+          <Loader2 className="h-8 w-8 animate-spin text-glow mb-3" />
+          <p className="text-sm text-mist">Analyzing screenshot…</p>
+        </>
+      ) : (
+        <>
+          <ImagePlus className={`text-glow/60 mb-3 ${compact ? "h-7 w-7" : "h-10 w-10"}`} />
+          <p className={`font-medium text-white text-center ${compact ? "text-sm" : "text-base"}`}>
+            Drop a screenshot here
+          </p>
+          <p className="mt-1 text-xs text-mist text-center">or click to browse</p>
+        </>
+      )}
+    </div>
   );
 }
