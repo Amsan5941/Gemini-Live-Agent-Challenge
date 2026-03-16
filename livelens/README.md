@@ -16,11 +16,11 @@ Traditional chatbots are disconnected from what is visible on the screen. LiveLe
 
 ## Solution in one minute
 
-1. User opens LiveLens session.
-2. User uploads a screenshot or starts from seeded demo state.
-3. User asks in voice: "Help me finish this application."
+1. Go to `/session`.
+2. Upload a screenshot of where you're stuck.
+3. Ask in voice or text: "Help me finish this application."
 4. Agent explains visible UI elements and updates checklist.
-5. In `Act` mode, agent proposes a safe action and waits for explicit confirmation.
+5. Follow guided steps — approve any proposed actions.
 6. Session ends with concise summary: completed, remaining, blockers.
 
 ## Why judges should care
@@ -29,14 +29,10 @@ Traditional chatbots are disconnected from what is visible on the screen. LiveLe
 - Grounded visual assistance that references visible evidence only.
 - Clear safety model for automation with explicit user confirmation.
 - Real Google Cloud architecture that is deployment-ready.
-- One-click seeded "magic demo" path for fast local judging.
 
-## Demo shortcuts
+## Useful links
 
-- 60-second flow: click `Load 60-second magic demo` in session page.
-- 4-minute script: [demo-script.md](docs/demo-script.md)
 - Submission checklist: [submission-checklist.md](docs/submission-checklist.md)
-- Seeded state reference: [sample-seeded-session.json](docs/sample-seeded-session.json)
 
 ## Architecture
 
@@ -174,13 +170,11 @@ Services:
 
 - `POST /api/sessions/start`
 - `GET /api/sessions/{session_id}`
-- `POST /api/sessions/{session_id}/mode`
 - `POST /api/sessions/{session_id}/screenshot`
 - `POST /api/sessions/{session_id}/analyze`
 - `POST /api/sessions/{session_id}/utterance`
 - `POST /api/sessions/{session_id}/actions/confirm`
 - `POST /api/sessions/{session_id}/finalize`
-- `POST /api/sessions/{session_id}/seed-demo`
 
 ## Deployment to Cloud Run
 
@@ -213,7 +207,5 @@ Set Cloud Run env vars:
 
 - Product overview and setup: this README
 - Architecture diagram: [architecture.mmd](docs/architecture.mmd)
-- Demo script: [demo-script.md](docs/demo-script.md)
-- Seeded test state: [sample-seeded-session.json](docs/sample-seeded-session.json)
 - Submission checklist: [submission-checklist.md](docs/submission-checklist.md)
 
