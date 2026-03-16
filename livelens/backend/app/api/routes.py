@@ -7,8 +7,6 @@ from app.core.config import get_settings
 from app.models.session import (
     ConfirmActionRequest,
     SessionState,
-    StartSessionRequest,
-    UpdateModeRequest,
     UtteranceRequest,
 )
 from app.services.orchestrator import orchestrator
@@ -28,9 +26,9 @@ def _get_session_or_404(store, session_id: str) -> SessionState:
 
 
 @router.post("/sessions/start", response_model=SessionState)
-async def start_session(payload: StartSessionRequest) -> SessionState:
+async def start_session() -> SessionState:
     store = get_session_store()
-    session = orchestrator.build_initial_session(payload.mode)
+    session = orchestrator.build_initial_session()
     return store.create(session)
 
 
@@ -41,15 +39,6 @@ async def get_session(session_id: str) -> SessionState:
         return store.get(session_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Session not found") from exc
-
-
-@router.post("/sessions/{session_id}/mode", response_model=SessionState)
-async def set_mode(session_id: str, payload: UpdateModeRequest) -> SessionState:
-    store = get_session_store()
-    session = _get_session_or_404(store, session_id)
-    session.mode = payload.mode
-    session.phase = "idle"
-    return store.save(session)
 
 
 @router.post("/sessions/{session_id}/screenshot", response_model=SessionState)
@@ -102,12 +91,4 @@ async def finalize_session(session_id: str) -> SessionState:
     store = get_session_store()
     session = _get_session_or_404(store, session_id)
     updated = orchestrator.finalize(session)
-    return store.save(updated)
-
-
-@router.post("/sessions/{session_id}/seed-demo", response_model=SessionState)
-async def seed_demo_state(session_id: str) -> SessionState:
-    store = get_session_store()
-    session = _get_session_or_404(store, session_id)
-    updated = orchestrator.seed_demo_state(session)
     return store.save(updated)

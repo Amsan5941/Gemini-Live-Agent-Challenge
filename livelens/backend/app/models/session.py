@@ -54,14 +54,6 @@ class SessionState(BaseModel):
     artifacts: dict[str, str] = Field(default_factory=dict)
 
 
-class StartSessionRequest(BaseModel):
-    mode: SessionMode = "assist"
-
-
-class UpdateModeRequest(BaseModel):
-    mode: SessionMode
-
-
 class UtteranceRequest(BaseModel):
     text: str
 
