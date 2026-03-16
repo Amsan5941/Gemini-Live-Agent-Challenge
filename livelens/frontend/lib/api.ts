@@ -1,4 +1,4 @@
-import { SessionMode, SessionState } from "@/lib/types";
+import { SessionState } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -31,11 +31,9 @@ async function parseJson<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function startSession(mode: SessionMode): Promise<SessionState> {
+export async function startSession(): Promise<SessionState> {
   const response = await fetch(`${API_BASE_URL}/api/sessions/start`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode })
+    method: "POST"
   });
 
   return normalizeSessionState(await parseJson<SessionState>(response));
@@ -68,15 +66,6 @@ export async function sendUtterance(sessionId: string, text: string): Promise<Se
   return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
-export async function updateMode(sessionId: string, mode: SessionMode): Promise<SessionState> {
-  const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/mode`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode })
-  });
-
-  return normalizeSessionState(await parseJson<SessionState>(response));
-}
 
 export async function confirmAction(sessionId: string, approved: boolean): Promise<SessionState> {
   const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/actions/confirm`, {
@@ -96,9 +85,3 @@ export async function finalizeSession(sessionId: string): Promise<SessionState> 
   return normalizeSessionState(await parseJson<SessionState>(response));
 }
 
-export async function seedDemoSession(sessionId: string): Promise<SessionState> {
-  const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/seed-demo`, {
-    method: "POST"
-  });
-  return normalizeSessionState(await parseJson<SessionState>(response));
-}
