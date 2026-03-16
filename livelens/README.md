@@ -90,6 +90,106 @@ LiveLens is designed to reduce hallucination risk in workflow guidance:
   README.md
 ```
 
+## Reproducible testing
+
+Follow these steps to run LiveLens locally end-to-end from a clean clone.
+
+### Prerequisites
+
+- Node.js 18+
+- Python 3.11+
+- A [Gemini API key](https://aistudio.google.com/app/apikey) (free tier works for light testing)
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+cd YOUR_REPO_NAME
+```
+
+### 2. Configure the backend
+
+```bash
+cd livelens/backend
+cp .env.example .env
+```
+
+Open `.env` and set:
+
+```
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+USE_LOCAL_STORAGE=true
+```
+
+Everything else can stay as the default — Firestore and Cloud Storage are not required for local testing (the app falls back to in-memory session storage and local file storage automatically).
+
+### 3. Start the backend
+
+```bash
+cd livelens/backend
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+playwright install chromium
+uvicorn app.main:app --reload --port 8000
+```
+
+Backend is ready when you see: `Application startup complete.`
+
+Verify: `curl http://localhost:8000/health` → `{"status":"ok"}`
+
+### 4. Configure the frontend
+
+```bash
+cd livelens/frontend
+cp .env.example .env.local
+```
+
+`.env.local` should contain:
+
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+### 5. Start the frontend
+
+```bash
+cd livelens/frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+### 6. Test the full flow
+
+1. Click **Start a session →** on the landing page
+2. Upload any screenshot of a form or UI you find confusing (PNG or JPG)
+3. Wait for Gemini to analyze it — a summary appears on the left and the checklist updates
+4. Type or speak a question (e.g. *"What does this field mean?"*)
+5. Receive a grounded voice + text response from the agent
+6. Click **Wrap up session** to generate a summary
+
+### 7. Run the backend test suite
+
+```bash
+cd livelens/backend
+source .venv/bin/activate
+pytest tests/ -v
+```
+
+Expected: all tests pass (15 tests covering orchestrator state machine and Gemini service).
+
+### Live deployment
+
+The backend is deployed at:
+`https://livelens-backend-386263955104.us-central1.run.app`
+
+To test against the live deployment, set `NEXT_PUBLIC_API_BASE_URL` to that URL in `.env.local` instead of `localhost:8000`.
+
+---
+
 ## Quick start
 
 ### One command (recommended)
