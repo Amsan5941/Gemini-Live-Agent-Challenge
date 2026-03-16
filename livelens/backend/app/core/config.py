@@ -5,6 +5,15 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _is_effectively_unset(value: str, placeholders: set[str] | None = None) -> bool:
+    normalized = value.strip()
+    if not normalized:
+        return True
+    if placeholders and normalized.lower() in placeholders:
+        return True
+    return False
+
+
 class Settings(BaseSettings):
     app_env: str = "development"
     port: int = 8000
@@ -25,6 +34,20 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
+
+    @property
+    def has_firestore_config(self) -> bool:
+        return not _is_effectively_unset(
+            self.google_cloud_project,
+            {"your-gcp-project-id"},
+        )
+
+    @property
+    def has_cloud_storage_config(self) -> bool:
+        return not _is_effectively_unset(
+            self.storage_bucket,
+            {"your-storage-bucket"},
+        )
 
 
 @lru_cache

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from pathlib import Path
+from functools import lru_cache
 
 from google.cloud import firestore
 
@@ -64,9 +64,10 @@ class FirestoreSessionStore(SessionStore):
 _memory_store = InMemorySessionStore()
 
 
+@lru_cache(maxsize=1)
 def get_session_store() -> SessionStore:
     settings = get_settings()
-    if settings.google_cloud_project and not settings.use_firestore_emulator:
+    if settings.has_firestore_config and not settings.use_firestore_emulator:
         try:
             return FirestoreSessionStore(settings)
         except Exception:

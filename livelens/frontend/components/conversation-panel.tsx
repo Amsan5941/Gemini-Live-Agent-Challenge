@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { CheckCircle2, Circle } from "lucide-react";
-import { AgentMessage, AgentPhase, ChecklistItem, SuggestedAction } from "@/lib/types";
+import { AgentMessage, AgentPhase, SuggestedAction } from "@/lib/types";
 
 interface ConversationPanelProps {
   messages: AgentMessage[];
-  checklist: ChecklistItem[];
   phase: AgentPhase;
   suggestedAction?: SuggestedAction | null;
   loading?: boolean;
@@ -16,7 +14,6 @@ interface ConversationPanelProps {
 
 export function ConversationPanel({
   messages,
-  checklist,
   phase,
   suggestedAction,
   loading = false,
@@ -57,26 +54,6 @@ export function ConversationPanel({
               <div className="leading-relaxed">{message.text}</div>
             </div>
           ))}
-
-          {checklist.length > 0 && (
-            <div className="my-2 rounded-2xl border border-white/8 bg-white/[0.02] p-4">
-              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-mist">Progress</div>
-              <div className="space-y-2">
-                {checklist.map((item) => (
-                  <div key={item.id} className="flex items-start gap-2 text-sm">
-                    {item.completed ? (
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-glow" />
-                    ) : (
-                      <Circle className="mt-0.5 h-4 w-4 flex-shrink-0 text-mist" />
-                    )}
-                    <span className={item.completed ? "text-white/70 line-through" : "text-white"}>
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {suggestedAction && (
             <div className="rounded-2xl border border-amber-300/40 bg-gradient-to-r from-amber-300/15 to-coral/10 p-4">

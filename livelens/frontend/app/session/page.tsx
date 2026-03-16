@@ -6,7 +6,6 @@ import { ArrowLeft, Send, Loader2, CheckCircle2, FileText } from "lucide-react";
 import { ConversationPanel } from "@/components/conversation-panel";
 import { ScreenPanel } from "@/components/screen-panel";
 import { VoiceControls } from "@/components/voice-controls";
-import { VoiceOrb } from "@/components/voice-orb";
 import {
   confirmAction,
   finalizeSession,
@@ -166,7 +165,6 @@ export default function SessionPage() {
           </Link>
           {!booting && (
             <div className="flex items-center gap-2">
-              <VoiceOrb phase={state.phase} />
               <span className="text-xs text-mist capitalize">{state.phase.replace("_", " ")}</span>
             </div>
           )}
@@ -280,7 +278,6 @@ export default function SessionPage() {
           {/* Right: conversation thread */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden px-4 pt-4 pb-0">
             <ConversationPanel
-              checklist={state.checklist}
               confirming={isConfirming}
               loading={booting}
               messages={state.transcript}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from pathlib import Path
 from uuid import uuid4
 
@@ -43,9 +44,10 @@ class CloudArtifactStore(ArtifactStore):
         return blob.public_url
 
 
+@lru_cache(maxsize=1)
 def get_artifact_store() -> ArtifactStore:
     settings = get_settings()
-    if settings.storage_bucket and not settings.use_local_storage:
+    if settings.has_cloud_storage_config and not settings.use_local_storage:
         try:
             return CloudArtifactStore(settings)
         except Exception:

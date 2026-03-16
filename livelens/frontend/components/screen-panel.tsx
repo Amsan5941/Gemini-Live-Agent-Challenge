@@ -21,6 +21,14 @@ export function ScreenPanel({
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  function getDraggedImageFile(e: DragEvent): File | null {
+    const file = e.dataTransfer.files[0];
+    if (!file?.type.startsWith("image/")) {
+      return null;
+    }
+    return file;
+  }
+
   function handleDragOver(e: DragEvent) {
     e.preventDefault();
     setDragging(true);
@@ -33,8 +41,8 @@ export function ScreenPanel({
   async function handleDrop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file?.type.startsWith("image/")) {
+    const file = getDraggedImageFile(e);
+    if (file) {
       await onUpload(file);
     }
   }
@@ -46,7 +54,12 @@ export function ScreenPanel({
 
   if (previewImageUrl && !loading) {
     return (
-      <div className="space-y-3">
+      <div
+        className="relative space-y-3 rounded-2xl"
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         <div className="overflow-hidden rounded-2xl border border-white/10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img alt="Uploaded screenshot" className="w-full object-cover" src={previewImageUrl} />
@@ -61,9 +74,18 @@ export function ScreenPanel({
           onClick={() => inputRef.current?.click()}
           type="button"
         >
-          Upload a different screenshot
+          Upload or drop a different screenshot
         </button>
         <input accept="image/*" className="hidden" onChange={handleFileChange} ref={inputRef} type="file" />
+
+        {dragging && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl border-2 border-dashed border-glow bg-slate-950/85 px-6 text-center">
+            <div>
+              <p className="text-sm font-medium text-white">Drop a screenshot to replace the current one</p>
+              <p className="mt-1 text-xs text-mist">PNG, JPG, and other image files are supported</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
